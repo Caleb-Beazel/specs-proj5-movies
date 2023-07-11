@@ -1,6 +1,6 @@
 """Server for movie ratings app."""
 
-from flask import Flask, render_template, request, flash, session
+from flask import Flask, render_template, request, flash, session, redirect
 
 from model import connect_to_db, db
 import crud
@@ -28,6 +28,58 @@ def show_movie(movie_id):
     movie = crud.get_movie_by_id(movie_id)
 
     return render_template("movie_details.html", movie=movie)
+
+
+@app.route("/users")
+def all_users():
+    users = crud.get_users()
+
+    return render_template("users.html", users=users)
+
+@app.route("/users", methods=["POST"])
+def register_user(email):
+
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    user = crud.get_user_by_email(email)
+
+    if user:
+        flash("There is already a registered user using this email. Please choose another.")
+
+    else:
+        with app.app_context():
+            user = crud.create_user(email, password)
+            db.session.add(user)
+            db.session.commit()
+        flash("Account created! Please log in.")
+
+    return redirect("/")
+
+@app.route("/users/<user_id>")
+def show_user(user_id):
+
+    user = crud.get_user_by_id(user_id)
+
+    return render_template("user_details.html", user=user)
+
+
+@app.route("/login", methods=["POST"])
+def process_login():
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    user = crud.get_user_by_email(email)
+
+    if not user or user.password != password:
+        flash("The email or password you entered was incorrect.")
+
+    else:
+        session["user_email"] = user.email
+        flash(f"Welcome back, {user.email}")
+    
+    return redirect("/")
+
 
 if __name__ == "__main__":
     connect_to_db(app)
