@@ -37,7 +37,7 @@ def all_users():
     return render_template("users.html", users=users)
 
 @app.route("/users", methods=["POST"])
-def register_user(email):
+def register_user():
 
     email = request.form.get("email")
     password = request.form.get("password")
@@ -79,6 +79,30 @@ def process_login():
         flash(f"Welcome back, {user.email}")
     
     return redirect("/")
+
+
+@app.route("/movies/<movie_id>/ratings", methods=["POST"])
+def create_rating(movie_id):
+    """Create a new rating for the movie."""
+
+    logged_in_email = session.get("user_email")
+    rating_score = request.form.get("rating")
+
+    if logged_in_email is None:
+        flash("You must log in to rate a movie.")
+    elif not rating_score:
+        flash("Error: you didn't select a score for your rating.")
+    else:
+        user = crud.get_user_by_email(logged_in_email)
+        movie = crud.get_movie_by_id(movie_id)
+
+        rating = crud.create_rating(user, movie, int(rating_score))
+        db.session.add(rating)
+        db.session.commit()
+
+        flash(f"You rated this movie {rating_score} out of 5.")
+
+    return redirect(f"/movies/{movie_id}")
 
 
 if __name__ == "__main__":
